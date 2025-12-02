@@ -79,8 +79,8 @@ class MainWindow(QMainWindow):
             'R3': {'val': 1000.0,  'label': 'R3 (Ω)'},
             'R4': {'val': 1000.0, 'label': 'R4 (Ω)'},
             'R5': {'val': 100.0,  'label': 'R5 (Ω)'},
-            'RC': {'val': 100.0,   'label': 'RC (mΩ)'},
-            'RJ': {'val': 100.0,    'label': 'RJ (mΩ)'},
+            'RC': {'val': 10.0,   'label': 'RC (mΩ)'},
+            'RJ': {'val': 10.0,    'label': 'RJ (mΩ)'},
             'RL': {'val': 10.0,     'label': 'RL (Ω)'},
         }
 
@@ -142,6 +142,13 @@ class MainWindow(QMainWindow):
 
         sweep_layout.addWidget(QLabel("横軸にするパラメータ:"))
         sweep_layout.addWidget(self.combo_sweep)
+
+        # スイープ範囲（%指定）入力
+        self.sweep_percent = QLineEdit()
+        self.sweep_percent.setText("50")  # デフォルト±50%
+        self.sweep_percent.textChanged.connect(self.update_calculation)
+        sweep_layout.addWidget(QLabel("スイープ範囲 (±%):"))
+        sweep_layout.addWidget(self.sweep_percent)
 
         control_layout.addWidget(sweep_group)
         control_layout.addStretch() # 下部の余白
@@ -219,13 +226,29 @@ class MainWindow(QMainWindow):
         target_param = self.combo_sweep.currentText()
         center_val = current_params[target_param]
 
-        # スイープ範囲: 中心値の 10% ～ 200% (線形スイープ)
-        # パラメータによっては0を含めないように注意
-        start_val = center_val * 0.5
-        end_val = center_val * 1.5
-        if start_val <= 0 and target_param != 'RJ': start_val = 1e-3 # RJ以外は正の値と仮定
+        # スイープ範囲: 中心値の (1 - p) ～ (1 + p) を%指定で設定
+        # p は 0～1 の範囲（例: 50% -> 0.5）
+        percent_text = self.sweep_percent.text().strip()
+        try:
+            if percent_text.endswith('%'):
+                p = float(percent_text[:-1]) / 100.0
+            else:
+                p = float(percent_text) / 100.0
+        except Exception:
+            p = 0.5  # 入力不正時は±50%
 
-        steps = 100
+        # p が負や過大な場合のクランプ
+        if p < 0:
+            p = 0.0
+        if p > 10:  # 過度な拡大を抑制（±1000%まで）
+            p = 10.0
+
+        start_val = center_val * (1.0 - p)
+        end_val = center_val * (1.0 + p)
+        if start_val <= 0:
+            start_val = 1e-3 # RJ以外は正の値と仮定
+
+        steps = 1000
         x_values = np.linspace(start_val, end_val, steps)
         y_values_db = []
 
