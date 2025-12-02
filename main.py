@@ -73,7 +73,7 @@ class MainWindow(QMainWindow):
 
         # パラメータの初期値と設定範囲
         self.params = {
-            'A':  {'val': 40.0, 'label': 'Gain A (dB)'},
+            'A':  {'val': 120.0, 'label': 'Gain A (dB)'},
             'R1': {'val': 1000.0,  'label': 'R1 (Ω)'},
             'R2': {'val': 1000.0, 'label': 'R2 (Ω)'},
             'R3': {'val': 1000.0,  'label': 'R3 (Ω)'},
